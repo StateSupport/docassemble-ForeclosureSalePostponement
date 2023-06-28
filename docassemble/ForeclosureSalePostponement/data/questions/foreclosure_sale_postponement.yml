@@ -1,0 +1,527 @@
+---
+include:
+  - docassemble.AssemblyLine:assembly_line.yml
+---
+modules:
+  - docassemble.ALToolbox.business_days
+---
+code: |
+  presumptive_deadline = sale_date.minus(days=15)
+  if not is_business_day(presumptive_deadline,subdiv="MN"):
+    actual_deadline = get_next_business_day(presumptive_deadline,subdiv="MN")
+  else:
+    actual_deadline = presumptive_deadline
+---
+code: |
+  ineligible_for_postponement = eligibility_for_postponement == "No"
+---
+code: |
+  deadline_passed = actual_deadline.minus(days=15)
+---
+code: |
+  if deadline_date == deadline_passed:
+    deadline_passed
+  if deadline_passed==True:
+    command('exit_logout', url=url_of('https://www.hocmn.org/'))
+  else:
+    previous_postponement
+---
+metadata:
+  title: |
+    Foreclosure Sale Postponement
+  short title: |
+    Foreclosure Sale Postponement
+  authors:
+    - Minnesota Courts
+---
+mandatory: True
+comment: |
+  Global interview metadata
+variable name: interview_metadata["foreclosure_sale_postponement"]
+data:
+  al_weaver_version: "1.9.0"
+  generated on: "2023-03-21"
+  title: >-
+    Foreclosure Sale Postponement
+  short title: >-
+    Foreclosure Sale Postponement
+  description: |-
+    Request postponement of the foreclosure sale of the Property pursuant to Minnesota Statutes, section 580.07, subdivision 2, for five months from the date scheduled in the attached Notice if the original redemption period is six months, or for 11 months if the original redemption period is 12 months.
+  allowed courts: []
+  categories: []
+  typical role: "na"
+  generate download screen: True
+---
+code: |
+  interview_metadata['main_interview_key'] =  'foreclosure_sale_postponement'
+---
+code: |
+  # This controls the default country and list of states in address field questions
+  AL_DEFAULT_COUNTRY = "US"
+---
+code: |
+  # This controls the default state in address field questions
+  AL_DEFAULT_STATE = "MN"
+---
+code: |
+  github_repo_name =  'docassemble-ForeclosureSalePostponement'
+---
+code: |
+  interview_short_title = "Postpone Foreclosure Sale"
+---
+code: |
+  al_form_type = "other" 
+---
+objects:
+  - users: ALPeopleList.using(ask_number=True,target_number=1)
+  - drafter: ALPeopleList.using(ask_number=True,target_number=1)
+  - owner: ALPeopleList.using(there_are_any=True)
+---
+sections:
+  - review_foreclosure_sale_postponement: Review your answers
+---
+###################### Main order ######################
+comment: |
+  This block includes the logic for standalone interviews.
+  Delete mandatory: True to include in another interview
+mandatory: True
+code: |
+  al_intro_screen
+  getting_started
+  if eligibility_for_postponement == 'Yes':
+    sale_date
+  if eligibility_for_postponement == "No":
+    ineligible_for_postponement
+  if ineligible_for_postponement==True:
+    command('exit_logout', url=url_of('https://www.lawhelpmn.org'))
+  sale_date
+  #deadline_date
+  if deadline_date == deadline_passed:
+    deadline_passed
+  else:
+    previous_postponement
+  #deadline_passed
+  if deadline_passed==True:
+    command('exit_logout', url=url_of('https://www.hocmn.org/'))
+  #if deadline_passed==False:
+  #  previous_postponement
+  foreclosure_sale_postponement_intro
+  interview_order_foreclosure_sale_postponement
+  signature_date
+  # Store anonymous data for analytics / statistics
+  store_variables_snapshot(
+      persistent=True,
+      data={
+          "zip": showifdef("users[0].address.zip"),
+          "reached_interview_end": True,
+      },
+  )
+  foreclosure_sale_postponement_preview_question
+  basic_questions_signature_flow    
+  signature_notarial_officer
+  foreclosure_sale_postponement_download
+---
+id: getting started
+continue button field: getting_started
+question: |
+  To get started, please enter your full name, and select your gender.
+fields:
+  - First Name: owner_name_first
+  - Middle Name: owner_name_middle
+    required: False
+  - Last Name: owner_name_last
+  - Gender: he_is_she_is_they_are
+    choices: 
+      - Male
+      - Female
+      - Other
+---
+id: eligibility for postponement
+#continue button field: eligibility_for_postponement
+question: |
+  First, let's find out if the property in question is eligible for a Sheriff Sale Postponement.
+fields: 
+  - "Is the property a homestead?": eligibility_for_postponement
+    help: |
+      According to Minnesota law, a homestead is any property that:
+      (1) is the owner's primary home, and
+      (2) is made of 1-4 living units (i.e., a four-plex, triplex, duplex or single family dwelling). You can only postpone the Sheriff sale if the property is a homestead.
+    input type: radio
+    choices:
+      - Yes
+      - No
+---
+id: ineligible
+#continue button field: ineligible_for_postponement
+question: |
+  I am sorry. If the property is not a homestead, you can not postpone the Sheriff's sale. 
+subquestion: |
+  Click "Next" to leave this interview.
+  If you made a mistake, click "Undo."
+---
+id: sale_date
+question: |
+  To determine if your deadline has passed, we need to know the date of the Sheriff sale. 
+subquestion: |
+  The deadline is <b>15 days</b> before the date of the Sheriff sale. If the deadline falls on a weekend or holiday, it moves forward to the next normal business day.
+fields:
+  - "Sale Date": sale_date
+    datatype: date
+    help: | 
+      The date of the sale is somewhere in the <b>"Notice of Mortgage Foreclosure Sale"</b> you got from the bank (or the bank's attorney).
+      
+      Read it carefully, and you will find a part that says something like:
+
+      "This property will be sold by the Sheriff at public auction on such and such a date..."
+      
+      Unfortunately, Notices may differ in how they show the sale date.
+---
+id: actual_deadline
+continue button field: deadline_date
+question: |
+  Your deadline is ${ actual_deadline }
+#validation code: |
+#  if deadline_passed==True:
+#    command('exit_logout', url=url_of('https://www.hocmn.org/'))
+#  if deadline_passed==False:
+#    previous_postponement
+---
+id: deadline passed
+continue button field: deadline_passed
+question: |
+  Unfortunately, it is likely too late for you to file.  
+subquestion: |
+  You may still be able to save your home if you act quickly! For more information about foreclosure postponement and foreclosure prevention resources available in Minnesota, visit the MN Home Ownership Center’s website. Click "Next" to continue to the MN Home Ownership Center's website. 
+---
+comment: doesnt seem to be doing anything
+code: |
+  if deadline_passed==True:
+    command('exit_logout', url=url_of('https://www.hocmn.org/'))
+---
+id: previous_postponement
+#continue button field: previous_postponement
+question: |
+  You can only postpone each foreclosure sale one time.
+subquestion: |
+  Have you filed a postponement for this foreclosure sale before?
+fields:
+  - yesno: previous_postponement
+---
+id: else deadline date
+#continue button field: else_deadline_date
+question: |
+  Your deadline is ${ format_date( sale_date() + date_interval(days=15) ) }.
+fields:
+  - "County": recorder_county
+    maxlength: 11
+  - "Recorder Registrar Address": recorder_registrar_address
+    input type: area
+    maxlength: 120
+  - "County": sheriff_county
+    maxlength: 11
+  - "Sheriff Address": sheriff_address
+    input type: area
+    maxlength: 120
+---
+id: instructions
+continue button field: foreclosure_sale_postponement_intro
+question: |
+  Instructions
+subquestion: |  
+  1.	Before you print, review your form carefully for any mistakes. If you need to change anything, you will need Microsoft Word. Public computers (like at libraries) have Microsoft Word.
+  
+  2.	Print your form - but do not sign it yet! Public computers also have pay printers, often for $0.10 per page. Attach a copy of your NOTICE OF MORTGAGE FORECLOSURE SALE.
+  
+  3.	Get your form Notarized. That means, take it to a person called a "Notary Public," and sign it in front of him or her. After witnessing your signature, the Notary will also sign the form, making it legally valid. You can often find a Notary at the Courthouse or bank. Some charge $1, but not at the Courthouse.
+  
+  4.	Make three copies of your notarized form (including the NOTICE you attached in Step 2). You should now have a total of four copies. Put one copy with your personal records at home.
+  
+  5.	Take the original and the remaining two copies to the County Recorder or Registrar of Titles, located at: 
+
+  <b>NOTE:</b> Do not complete Step 5 until after the first publication of the NOTICE (eg., in a newspaper.)
+
+  File the original form there. You will have to pay a recording fee of $50-55. Bring cash or a check. The County Recorder will put the date and filing information on the remaining two copies of your form. You will need them for the next steps.
+
+  <b>TIP:</b> <i>File your papers as soon as you can. Call the Recorder ahead of time to get their office hours, and show up early. It could take over an hour to file your papers. Unexpected problems may cause delays - so do not wait until the last day!</i>
+
+  6.	File one copy with the 	County Sheriff - who is conducting the sale - at this address:
+
+  Some County Sheriffs charge fees to file your form, and others don't.
+ 
+  7.	Deliver one copy to the attorney or law firm conducting the foreclosure. The attorney's name and contact information is on PAGE 2 of your NOTICE OF MORTGAGE FORECLOSURE SALE. Call ahead to see if they want you to send the form via fax, mail, or in-person.
+
+  8.	Finally, follow up the next day with the Sheriff and the foreclosure attorney. Make sure they received your form, and confirm the new sale date.
+---
+id: Affidavit of Postponement
+question: |
+  Affidavit of Postponement
+fields:
+  - "County": notary_county
+    maxlength: 9
+  - "He is/ she is /they are": he_is_she_is_they_are
+    maxlength: 10
+  - "County": county
+    maxlength: 11
+  - "Owner": owner_poss
+    maxlength: 9
+  - "Torrens": torrens
+    datatype: yesno
+---
+id: Notary Public Signature
+question: |
+  Notary Public Signature
+fields:
+  - "Signed": signed_sworn
+    maxlength: 26
+  - "Commission expires": commission_expires
+    maxlength: 25
+---
+id: preview foreclosure_sale_postponement
+question: |
+  Preview your form before you sign it
+subquestion: |
+  Here is a preview of the form you will sign on the next page.   
+  
+  ${ al_recipient_bundle.as_pdf(key='preview') }
+
+  Click the image to open it in a new tab. Click the "Edit answers" button
+  to edit your answers.
+
+  ${ action_button_html(url_action('review_foreclosure_sale_postponement'), label='Edit answers', color='info') }
+  
+  Remember to come back to this window to continue and sign your form.
+continue button field: foreclosure_sale_postponement_preview_question    
+---
+code: |
+  signature_fields = ['users[0].signature', 'signature_notarial_officer']
+---
+id: foreclosure sale postponement review screen
+event: review_foreclosure_sale_postponement
+question: |
+  Review your answers
+review:
+  - Edit: deadline_date
+    button: |
+      **Deadline Date**:
+      ${ deadline_date }
+  - Edit: sale_date
+    button: |
+      **Sale Date**:
+      ${ sale_date }
+  - Edit: else_deadline_date
+    button: |
+      **Deadline Date**:
+      ${ else_deadline_date }
+  - Edit: deadline_date_actual
+    button: |
+      **Deadline Date**:
+      ${ deadline_date_actual }
+  - Edit: deadline_date_possible
+    button: |
+      **Deadline Date**:
+      ${ deadline_date_possible }
+  - Edit: notary_county
+    button: |
+      **County**:
+      ${ notary_county }
+  - Edit: owner.revisit
+    button: |
+      **Owner**
+
+      % for item in owner:
+        * ${ item }
+      % endfor
+  - Edit: he_is_she_is_they_are
+    button: |
+      **He is/ she is /they are**:
+      ${ he_is_she_is_they_are }
+  - Edit: county
+    button: |
+      **County**:
+      ${ county }
+  - Edit: drafter.revisit
+    button: |
+      **Drafter**
+
+      % for item in drafter:
+        * ${ item }
+      % endfor
+  - Edit: recorder_county
+    button: |
+      **County**:
+      ${ recorder_county }
+  - Edit: owner_poss
+    button: |
+      **Owner**:
+      ${ owner_poss }
+  - Edit: torrens
+    button: |
+      **Torrens**:
+      ${ word(yesno(torrens)) }
+  - Edit: recorder_registrar_address
+    button: |
+      **Recorder Registrar Address**:
+      > ${ single_paragraph(recorder_registrar_address) }
+  - Edit: sheriff_county
+    button: |
+      **County**:
+      ${ sheriff_county }
+  - Edit: sheriff_address
+    button: |
+      **Sheriff Address**:
+      > ${ single_paragraph(sheriff_address) }
+  - Edit: users.revisit
+    button: |
+      **Users**
+
+      % for item in users:
+        * ${ item }
+      % endfor
+  - Edit: signed_sworn
+    button: |
+      **Signed**:
+      ${ signed_sworn }
+  - Edit: signature_notarial_officer
+    button: |
+      **signature_notarial_officer**:
+      ${ signature_notarial_officer }
+  - Edit: commission_expires
+    button: |
+      **Commission expires**:
+      ${ commission_expires }
+---
+continue button field: owner.revisit
+question: |
+  Edit owner
+subquestion: |
+  ${ owner.table }
+
+  ${ owner.add_action() }
+---
+table: owner.table
+rows: owner
+columns:
+  - Name: |
+      row_item.name.full() if defined("row_item.name.first") else ""
+edit:
+  - name.first
+confirm: True
+
+---
+continue button field: drafter.revisit
+question: |
+  Edit drafter
+subquestion: |
+  ${ drafter.table }
+
+  ${ drafter.add_action() }
+---
+table: drafter.table
+rows: drafter
+columns:
+  - Name: |
+      row_item.name.full() if defined("row_item.name.first") else ""
+  - Address: |
+      row_item.address.block() if defined("row_item.address.zip") else ""
+edit:
+  - name.first
+  - address.zip
+confirm: True
+
+---
+continue button field: users.revisit
+question: |
+  Edit users
+subquestion: |
+  ${ users.table }
+
+  ${ users.add_action() }
+---
+table: users.table
+rows: users
+columns:
+  - Signature: |
+      row_item.signature if defined("row_item.signature") else ""
+edit:
+  - signature
+confirm: True
+
+---
+id: download foreclosure_sale_postponement
+event: foreclosure_sale_postponement_download
+question: |
+  All done
+subquestion: |
+  Thank you ${users}. Your form is ready to download and deliver.
+  
+  View, download and send your form below. Click the "Edit answers" button to fix any mistakes.
+
+  ${ action_button_html(url_action('review_foreclosure_sale_postponement'), label='Edit answers', color='info') }
+  
+  
+  ${ al_user_bundle.download_list_html() }
+  
+
+  ${ al_user_bundle.send_button_html(show_editable_checkbox=False) }
+
+progress: 100
+---
+# ALDocument objects specify the metadata for each template
+objects:
+  - foreclosure_sale_postponement_Post_interview_instructions: ALDocument.using(title="Instructions", filename="foreclosure_sale_postponement_next_steps.docx", enabled=True, has_addendum=False)
+  - foreclosure_sale_postponement_attachment: ALDocument.using(title="Foreclosure Sale Postponement", filename="foreclosure_sale_postponement", enabled=True, has_addendum=False, )
+---
+# Bundles group the ALDocuments into separate downloads, such as for court and for the user
+objects:
+  - al_user_bundle: ALDocumentBundle.using(elements=[foreclosure_sale_postponement_Post_interview_instructions, foreclosure_sale_postponement_attachment], filename="foreclosure_sale_postponement", title="All forms to download for your records", enabled=True)
+  - al_recipient_bundle: ALDocumentBundle.using(elements=[foreclosure_sale_postponement_attachment],  filename="foreclosure_sale_postponement", title="All forms to file", enabled=True)
+---
+# Each attachment defines a key in an ALDocument. We use `i` as the placeholder here so the same template is 
+# used for "preview" and "final" keys, and logic in the template checks the value of 
+# `i` to show or hide the user's signature
+attachment:
+  name: Post-interview-Instructions
+  filename: foreclosure_sale_postponement_next_steps
+  docx template file: foreclosure_sale_postponement_next_steps.docx
+  variable name: foreclosure_sale_postponement_Post_interview_instructions[i]
+  skip undefined: True
+---
+attachment:
+  name: foreclosure sale postponement
+  filename: foreclosure_sale_postponement
+  variable name: foreclosure_sale_postponement_attachment[i]
+  skip undefined: True
+  pdf template file: foreclosure_sale_postponement.pdf
+  fields:
+      - "deadline_date": ${ deadline_date.format() }
+      - "sale_date": ${ sale_date.format() }
+      - "else_deadline_date": ${ else_deadline_date.format() }
+      - "deadline_date_actual": ${ deadline_date_actual }
+      - "deadline_date_possible": ${ deadline_date_possible }
+      - "notary_county": ${ notary_county }
+      - "owner_name__1": ${ owner[0] }
+      - "owner_name__1": ${ owner[0] }
+      - "owner_name__1": ${ owner[0] }
+      - "owner_name__2": ${ owner[0] }
+      - "he_is_she_is_they_are": ${ he_is_she_is_they_are }
+      - "county": ${ county }
+      - "drafter_name": ${ drafter[0] }
+      - "drafter_address_street__1": ${ drafter[0].address.address }
+      - "drafter_address_street__2": ${ drafter[0].address.address }
+      - "drafter_address_city": ${ drafter[0].address.city }
+      - "drafter_address_state": ${ drafter[0].address.state }
+      - "drafter_address_zip": ${ drafter[0].address.zip }
+      - "recorder_county": ${ recorder_county }
+      - "owner_poss": ${ owner_poss }
+      - "torrens": ${ torrens }
+      - "recorder_registrar_address": ${ recorder_registrar_address }
+      - "sheriff_county": ${ sheriff_county }
+      - "sheriff_address": ${ sheriff_address }
+      - "users1_signature__1": ${ users[0].signature_if_final(i) }
+      - "users1_signature__2": ${ users[0].signature_if_final(i) }
+      - "signed_sworn": ${ signed_sworn }
+      # It's a signature: test which file version this is; leave empty unless it's the final version)
+      - "signature_notarial_officer": ${ signature_notarial_officer if i == "final" else '' }
+      - "commission_expires": ${ commission_expires }
+
+
