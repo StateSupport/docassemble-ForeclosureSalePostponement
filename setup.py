@@ -54,7 +54,7 @@ setup(name='docassemble.ForeclosureSalePostponement',
       url='https://docassemble.org',
       packages=find_packages(),
       namespace_packages=['docassemble'],
-      install_requires=['docassemble.AssemblyLine>=2.21.0'],
+      install_requires=['docassemble.AssemblyLine>=2.26.0'],
       zip_safe=False,
       package_data=find_package_data(where='docassemble/ForeclosureSalePostponement/', package='docassemble.ForeclosureSalePostponement'),
      )
